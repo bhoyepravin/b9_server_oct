@@ -1,241 +1,129 @@
-const { User } = require("../models");
-const { Op } = require("sequelize");
+const { User, Role } = require("../models");
 
-// Get all users
-exports.getAllUsers = async (req, res) => {
-  try {
-    const users = await User.findAll({
-      include: ["Role"], // Include role information
-      attributes: { exclude: ["password"] }, // Exclude password from response
-    });
-
-    res.status(200).json({
-      success: true,
-      data: users,
-      count: users.length,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching users",
-      error: error.message,
-    });
-  }
-};
-
-// Get user by ID
-exports.getUserById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const user = await User.findByPk(id, {
-      include: ["Role"],
-      attributes: { exclude: ["password"] },
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
+const userController = {
+  // Get all users
+  getAllUsers: async (req, res) => {
+    try {
+      const users = await User.findAll({
+        include: [
+          {
+            model: Role,
+            as: "UserRole",
+            attributes: ["id", "name", "description"],
+          },
+        ],
       });
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
+  },
 
-    res.status(200).json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching user",
-      error: error.message,
-    });
-  }
-};
-
-// Create new user
-exports.createUser = async (req, res) => {
-  try {
-    const { username, email, password, roleId } = req.body;
-
-    // Check if user already exists
-    const existingUser = await User.findOne({
-      where: {
-        [Op.or]: [{ email }, { username }],
-      },
-    });
-
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "User with this email or username already exists",
+  // Get user by ID
+  getUserById: async (req, res) => {
+    try {
+      const user = await User.findByPk(req.params.id, {
+        include: [
+          {
+            model: Role,
+            as: "UserRole",
+            attributes: ["id", "name", "description"],
+          },
+        ],
       });
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
+  },
 
-    const user = await User.create({
-      username,
-      email,
-      password, // In production, hash the password before saving
-      roleId,
-    });
+  // Create new user
+  createUser: async (req, res) => {
+    try {
+      const { username, email, password, roleId, firstName, lastName, phone } =
+        req.body;
 
-    // Exclude password from response
-    const userResponse = { ...user.toJSON() };
-    delete userResponse.password;
-
-    res.status(201).json({
-      success: true,
-      message: "User created successfully",
-      data: userResponse,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error creating user",
-      error: error.message,
-    });
-  }
-};
-
-// Update user
-exports.updateUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { username, email, roleId } = req.body;
-
-    const user = await User.findByPk(id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    // Check if email or username is already taken by another user
-    if (email || username) {
+      // Check if user already exists
       const existingUser = await User.findOne({
-        where: {
-          [Op.or]: [email && { email }, username && { username }].filter(
-            Boolean
-          ),
-          id: { [Op.ne]: id },
-        },
+        where: { email },
       });
 
       if (existingUser) {
-        return res.status(400).json({
-          success: false,
-          message: "Email or username already taken by another user",
-        });
+        return res
+          .status(400)
+          .json({ error: "User with this email already exists" });
       }
-    }
 
-    await user.update({
-      ...(username && { username }),
-      ...(email && { email }),
-      ...(roleId && { roleId }),
-    });
-
-    // Exclude password from response
-    const userResponse = { ...user.toJSON() };
-    delete userResponse.password;
-
-    res.status(200).json({
-      success: true,
-      message: "User updated successfully",
-      data: userResponse,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error updating user",
-      error: error.message,
-    });
-  }
-};
-
-// Delete user
-exports.deleteUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const user = await User.findByPk(id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
+      const user = await User.create({
+        username,
+        email,
+        password, // In production, hash this password
+        roleId,
+        firstName,
+        lastName,
+        phone,
       });
+
+      res.status(201).json(user);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
+  },
 
-    await user.destroy();
+  // Update user
+  updateUser: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { username, email, roleId, firstName, lastName, phone, isActive } =
+        req.body;
 
-    res.status(200).json({
-      success: true,
-      message: "User deleted successfully",
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error deleting user",
-      error: error.message,
-    });
-  }
-};
+      const user = await User.findByPk(id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
 
-// Get user by email
-exports.getUserByEmail = async (req, res) => {
-  try {
-    const { email } = req.params;
-
-    const user = await User.findOne({
-      where: { email },
-      include: ["Role"],
-      attributes: { exclude: ["password"] },
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
+      await user.update({
+        username,
+        email,
+        roleId,
+        firstName,
+        lastName,
+        phone,
+        isActive,
       });
+
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
+  },
 
-    res.status(200).json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching user",
-      error: error.message,
-    });
-  }
+  // Delete user
+  deleteUser: async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const user = await User.findByPk(id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await user.destroy();
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
 };
 
-// Get users by role
-exports.getUsersByRole = async (req, res) => {
-  try {
-    const { roleId } = req.params;
-
-    const users = await User.findAll({
-      where: { roleId },
-      include: ["Role"],
-      attributes: { exclude: ["password"] },
-    });
-
-    res.status(200).json({
-      success: true,
-      data: users,
-      count: users.length,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching users by role",
-      error: error.message,
-    });
-  }
-};
+module.exports = userController;

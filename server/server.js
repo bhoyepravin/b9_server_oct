@@ -32,14 +32,17 @@ server.get("/test", (req, res) => {
 
 // Import routes
 const userRoutes = require("./routes/userRoutes");
-const clientRoutes = require("./routes/clientRoutes");
+// const clientRoutes = require("./routes/clientRoutes");
+const roleroutes = require("./routes/roleRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
 const questionnaireRoutes = require("./routes/questionnaireRoutes");
 const questionnaireResponseRoutes = require("./routes/questionnaireResponseRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 
+server.use("api/v1/roles", roleroutes);
 server.use("/api/v1/user", userRoutes);
-server.use("/api/v1/client", clientRoutes);
+// server.use("/api/v1/user", userRoutes);
+// server.use("/api/v1/client", clientRoutes);
 server.use("/api/v1/appointment", appointmentRoutes);
 server.use("/api/v1/questionnaire", questionnaireRoutes);
 server.use("/api/v1/questionnaire-response", questionnaireResponseRoutes);
