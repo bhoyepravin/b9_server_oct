@@ -38,6 +38,7 @@ const appointmentRoutes = require("./routes/appointmentRoutes");
 const questionnaireRoutes = require("./routes/questionnaireRoutes");
 const questionnaireResponseRoutes = require("./routes/questionnaireResponseRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const userAssessmentRoutes = require("./routes/userAssessments");
 
 server.use("api/v1/roles", roleroutes);
 server.use("/api/v1/user", userRoutes);
@@ -47,6 +48,7 @@ server.use("/api/v1/appointment", appointmentRoutes);
 server.use("/api/v1/questionnaire", questionnaireRoutes);
 server.use("/api/v1/questionnaire-response", questionnaireResponseRoutes);
 server.use("/api/v1/payment", paymentRoutes);
+server.use("/api/v1/user-assessment", userAssessmentRoutes);
 
 // Sync database and start server
 

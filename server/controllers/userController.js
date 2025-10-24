@@ -47,8 +47,17 @@ const userController = {
   // Create new user
   createUser: async (req, res) => {
     try {
-      const { username, email, password, roleId, firstName, lastName, phone } =
-        req.body;
+      const {
+        username,
+        email,
+        password,
+        roleId,
+        firstName,
+        lastName,
+        phone,
+        address,
+        message,
+      } = req.body;
 
       // Check if user already exists
       const existingUser = await User.findOne({
@@ -69,6 +78,8 @@ const userController = {
         firstName,
         lastName,
         phone,
+        address,
+        message,
       });
 
       res.status(201).json(user);
@@ -82,8 +93,17 @@ const userController = {
   updateUser: async (req, res) => {
     try {
       const { id } = req.params;
-      const { username, email, roleId, firstName, lastName, phone, isActive } =
-        req.body;
+      const {
+        username,
+        email,
+        roleId,
+        firstName,
+        lastName,
+        phone,
+        address,
+        message,
+        isActive,
+      } = req.body;
 
       const user = await User.findByPk(id);
       if (!user) {
@@ -97,6 +117,8 @@ const userController = {
         firstName,
         lastName,
         phone,
+        address,
+        message,
         isActive,
       });
 
@@ -121,6 +143,29 @@ const userController = {
       res.json({ message: "User deleted successfully" });
     } catch (error) {
       console.error("Error deleting user:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  // Get users by role
+  getUsersByRole: async (req, res) => {
+    try {
+      const { roleId } = req.params;
+
+      const users = await User.findAll({
+        where: { roleId },
+        include: [
+          {
+            model: Role,
+            as: "UserRole",
+            attributes: ["id", "name", "description"],
+          },
+        ],
+      });
+
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users by role:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },
